@@ -107,9 +107,10 @@ if __name__ == "__main__":
 st.markdown("---")
 st.markdown(
     """
-    <div style='text-align: center; color: gray; font-size: 14px;'>
+    <div style="text-align: center; color: gray; font-size: 14px;">
         📌 Creado por <strong>Denis Sánchez</strong> – Refinería Talara, 2025
     </div>
     """,
     unsafe_allow_html=True
 )
+
