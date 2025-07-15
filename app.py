@@ -1,104 +1,111 @@
 import streamlit as st
 import pandas as pd
-import math
+import numpy as np
+from math import pi
+from datetime import date
 
-# Título de la app
-st.title("Preparación de Soluciones Químicas")
-
-# Cargar la plantilla Excel
+# --- Cargar datos Excel y limpiar encabezados ---
 @st.cache_data
 def cargar_datos():
-    return pd.read_excel("plantilla_recetas_productos.xlsx")
+    df = pd.read_excel("plantilla_recetas_productos.xlsx")
+    df.columns = df.columns.str.strip()  # Limpiar nombres de columnas
+    df["Codigo"] = df["Codigo"].astype(str).str.strip()  # Asegurar sin espacios
+    df["Nombre_comercial"] = df["Nombre_comercial"].astype(str).str.strip()
+    df["Unidad"] = df["Unidad"].astype(str).str.strip()
+    return df
 
+# --- Función para calcular volumen desde ecuación nivel ---
+def calcular_volumen(ecuacion, x):
+    try:
+        return eval(ecuacion.replace("x", str(x)).replace("^", "**"))
+    except:
+        return 0
+
+# --- Título principal ---
+st.title("📘 Preparación de Soluciones Químicas")
+
+# --- Cargar plantilla ---
 df = cargar_datos()
 
-# Seleccionar unidad
-unidad = st.selectbox("Selecciona la unidad:", df["Unidad"].unique())
+# --- Selección de unidad ---
+unidad_sel = st.selectbox("Selecciona la unidad:", sorted(df["Unidad"].unique()))
+productos_disponibles = df[df["Unidad"] == unidad_sel]["Nombre_comercial"].unique()
+producto_sel = st.selectbox("Selecciona el producto químico:", sorted(productos_disponibles))
 
-# Filtrar productos por unidad
-productos_unidad = df[df["Unidad"] == unidad]
-producto = st.selectbox("Selecciona el producto químico:", productos_unidad["Nombre_comercial"].unique())
+# --- Filtrado del DataFrame ---
+data = df[(df["Unidad"] == unidad_sel) & (df["Nombre_comercial"] == producto_sel)].reset_index(drop=True)
 
-# Obtener los datos del producto seleccionado
-data = productos_unidad[productos_unidad["Nombre_comercial"] == producto].iloc[0]
+if not data.empty:
+    # Extraer valores únicos
+    tipo = data["Tipo_Producto"].values[0]
+    concentracion = data["Concentracion_Porcentual"].values[0]
+    densidad_soluto = data["Densidad_Soluto"].values[0]
+    densidad_ref = data["Densidad_Solvente_Referencia"].values[0]
+    ecuacion = data["Ecuacion_Volumen"].values[0]
+    codigo = data["Codigo"].values[0]
+    proveedor = data["Proveedor"].values[0]
+    presentacion = data["Presentacion"].values[0]
 
-tipo_producto = data["Tipo_Producto"]
-densidad_soluto = data["Densidad_Soluto"]
-densidad_solvente_ref = data["Densidad_Solvente_Referencia"]
-concentracion = data["Concentracion_Porcentual"] / 100
-formula_volumen = data["Ecuacion_Volumen"]
-codigo = data["Codigo"]
-proveedor = data["Proveedor"]
-presentacion = data["Presentacion"]
+    st.markdown("### Parámetros de Preparación")
 
-st.markdown(f"**Tipo de producto:** {tipo_producto}")
+    densidad_solvente = st.number_input("Ingrese la densidad actual del solvente (kg/m³):", value=densidad_ref)
+    nivel_inicial = st.number_input("Nivel inicial (%):", value=15.0)
+    nivel_final = st.number_input("Nivel final (%):", value=88.0)
 
-# Ingresar niveles
-nivel_inicial = st.number_input("Nivel inicial (%):", min_value=0.0, max_value=100.0, value=15.0)
-nivel_final = st.number_input("Nivel final (%):", min_value=0.0, max_value=100.0, value=88.0)
+    # Calcular volumen a preparar
+    volumen_total = calcular_volumen(ecuacion, nivel_final) - calcular_volumen(ecuacion, nivel_inicial)
+    masa_total = volumen_total * ((concentracion / 100) * densidad_soluto + (1 - (concentracion / 100)) * densidad_solvente)
 
-# Calcular volumen
-try:
-    x = nivel_final
-    V_final = eval(formula_volumen)
-    x = nivel_inicial
-    V_inicial = eval(formula_volumen)
-    volumen_solucion = round(V_final - V_inicial, 4)
-except:
-    st.error("Error al evaluar la fórmula del volumen. Verifica el formato.")
-    volumen_solucion = 0
+    masa_soluto = (concentracion / 100) * masa_total
+    masa_solvente = masa_total - masa_soluto
+    volumen_soluto = masa_soluto / densidad_soluto
+    volumen_solvente = masa_solvente / densidad_solvente
 
-# Calcular masas
-masa_total = round(volumen_solucion * densidad_solvente_ref, 2)
-masa_soluto = round(masa_total * concentracion, 2)
-masa_solvente = round(masa_total - masa_soluto, 2)
+    # --- Resultados ---
+    st.markdown("### Resultados de Preparación")
+    st.dataframe(pd.DataFrame({
+        "Componente": ["Soluto", "Solvente", "Total"],
+        "Volumen (L)": [round(volumen_soluto, 2), round(volumen_solvente, 2), round(volumen_total, 2)],
+        "Masa (kg)": [round(masa_soluto, 2), round(masa_solvente, 2), round(masa_total, 2)]
+    }))
 
-densidad_real = round((masa_soluto + masa_solvente) / volumen_solucion, 3)
+    # --- Texto para el correo ---
+    st.markdown("### Generación de Texto para Comunicación")
+    texto = f"""
+1. **Premisas para la preparación:**
 
-# Mostrar tabla
-st.subheader("Resultados de la preparación")
-resultados = pd.DataFrame({
-    "Componente": ["Soluto", "Solvente", "Solución Total"],
-    "Volumen [L]": [round(masa_soluto / densidad_soluto * 1000, 2), round(masa_solvente / densidad_solvente_ref * 1000, 2), round(volumen_solucion * 1000, 2)],
-    "Masa [kg]": [masa_soluto, masa_solvente, masa_soluto + masa_solvente]
-})
-st.dataframe(resultados)
+   a. Densidad de la {tipo.lower()}: {densidad_solvente:.1f} kg/m³ (Dato {date.today()}).
 
-# Mostrar correo técnico
-date_str = pd.Timestamp.today().strftime("%Y-%m-%d")
-correo = f"""
-1.         Premisas para la preparación:
- 
-a. Densidad de la nafta pesada hidrotratada: {densidad_solvente_ref} kg/m3 (Data JLBT {date_str}).
-b. Nivel del drum {unidad} a considerar {nivel_inicial:.1f} %.
-c. Objetivo para aforar es hasta el {nivel_final:.1f}% del nivel, para utilizar la máxima cantidad del PQ una vez abierto el cilindro, que sea fácil de contabilizar en campo y estar por debajo de la alarma de alta (90%).
- 
-2.         Preparación de la Solución:
- 
-a. Volumen para usar de {producto}:
-{round(masa_soluto / densidad_soluto * 1000)} L ({masa_soluto} kg).        
-b. Volumen para usar de nafta pesada hidrotratada:
-{round(masa_solvente / densidad_solvente_ref * 1000)} L ({masa_solvente} kg).
-c. Volumen total de solución:
-{round(volumen_solucion * 1000)} L ({round(masa_soluto + masa_solvente, 2)} kg).                            
- 
-3.         Información para retirar producto de almacén (JIYA):
- 
-a. Código Material: {codigo}.
-b. Proveedor: {proveedor}.
-c. Nombre comercial: {producto}.
-d. Presentación: {presentacion}.
-"""
+   b. Nivel del drum {unidad_sel}-D-025 a considerar: {nivel_inicial:.1f} %.
 
-st.subheader("Texto generado para correo técnico")
-st.text_area("Correo:", correo, height=400)
+   c. Objetivo para aforar es hasta el {nivel_final:.1f}% del nivel, para utilizar la máxima cantidad del producto químico una vez abierto el cilindro, que sea fácil de contabilizar en campo y estar por debajo de la alarma de alta (90%).
 
-# Firma final
+2. **Preparación de la Solución:**
+
+   a. Volumen para usar de {producto_sel}:\n      {round(volumen_soluto, 0)} L ({round(masa_soluto, 0)} kg)
+
+   b. Volumen para usar de {tipo.lower()}:\n      {round(volumen_solvente, 0)} L ({round(masa_solvente, 0)} kg)
+
+   c. Volumen total de solución:\n      {round(volumen_total, 0)} L ({round(masa_total, 0)} kg)
+
+3. **Información para retirar producto de almacén (JIYA):**
+
+   a. Código Material: {codigo}
+
+   b. Proveedor: {proveedor}
+
+   c. Nombre comercial: {producto_sel}
+
+   d. Presentación: {presentacion}
+    """
+    st.code(texto, language="markdown")
+
+# --- Pie de autor ---
 st.markdown("---")
 st.markdown(
     """
-    <div style="text-align: center; color: gray; font-size: 14px;">
-        📌 Creado por <strong>Denis Sánchez</strong> – Refinería Talara, 2025
+    <div style='text-align: center; color: gray; font-size: 14px;'>
+    ✦ Creado por <strong>Denis Sánchez</strong> – Refinería Talara, 2025
     </div>
     """,
     unsafe_allow_html=True
