@@ -1,59 +1,70 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
+from datetime import datetime
 
-# Cargar datos desde Excel
 @st.cache_data
 def cargar_datos():
     return pd.read_excel("plantilla_recetas_productos.xlsx")
 
-def evaluar_volumen(nivel, ecuacion_str, porcentaje=True):
-    x = nivel / 100 if porcentaje else nivel
+def evaluar_volumen(nivel, ecuacion_str):
     try:
+        x = nivel
         return eval(ecuacion_str)
     except:
         return np.nan
 
-def main():
-    st.title("📘 Preparación de Soluciones Químicas")
+def calcular_resultados(volumen_litros, porcentaje, dens_soluto, dens_solvente):
+    fraccion = porcentaje / 100
+    vol_soluto = volumen_litros * fraccion
+    vol_solvente = volumen_litros - vol_soluto
+    masa_soluto = vol_soluto * dens_soluto / 1000
+    masa_solvente = vol_solvente * dens_solvente / 1000
+    masa_total = masa_soluto + masa_solvente
 
+    return pd.DataFrame({
+        "Componente": ["Soluto", "Solvente", "Total"],
+        "Volumen (L)": [round(vol_soluto, 2), round(vol_solvente, 2), round(volumen_litros, 2)],
+        "Masa (kg)": [round(masa_soluto, 2), round(masa_solvente, 2), round(masa_total, 2)]
+    })
+
+def main():
+    st.title("🧪 Preparación de Soluciones Químicas por Unidad")
     df = cargar_datos()
 
-    # Selección de unidad y tipo de producto
-    unidad_seleccionada = st.selectbox("Selecciona la unidad:", df["Unidad"].unique())
+    unidad = st.selectbox("Selecciona la unidad", df["Unidad"].unique())
+    productos = df[df["Unidad"] == unidad]["Nombre_comercial"].unique()
+    producto = st.selectbox("Selecciona el producto químico", productos)
 
-    tipos_disponibles = df[df["Unidad"] == unidad_seleccionada]["Tipo_Producto"].unique()
-    tipo_producto = st.selectbox("Selecciona el tipo de producto:", tipos_disponibles)
+    datos = df[(df["Unidad"] == unidad) & (df["Nombre_comercial"] == producto)].iloc[0]
 
-    # Filtro del producto seleccionado
-    data = df[(df["Unidad"] == unidad_seleccionada) & (df["Tipo_Producto"] == tipo_producto)].iloc[0]
+    densidad_solvente = st.number_input("Densidad actual del solvente (kg/m³)", value=float(datos["Densidad_Solvente_Referencia"]))
+    nivel_inicial = st.number_input("Nivel inicial (%)", min_value=0.0, max_value=100.0, value=15.0)
+    nivel_final = st.number_input("Nivel final (%)", min_value=0.0, max_value=100.0, value=88.0)
 
-    st.subheader("Parámetros de Preparación")
-    densidad_solvente_actual = st.number_input("Ingrese la densidad actual del solvente (kg/m³):", value=729.8)
-    nivel_inicial = st.number_input("Nivel inicial (%):", value=15.0)
-    nivel_final = st.number_input("Nivel final (%):", value=88.0)
+    volumen_litros = evaluar_volumen(nivel_final, datos["Ecuacion_Volumen"]) * 1000  # m³ a L
+    resultado = calcular_resultados(volumen_litros, datos["Concentracion_Porcentual"], datos["Densidad_Soluto"], densidad_solvente)
 
-    # Evaluar volumen total en litros con ecuación
-    volumen_total = evaluar_volumen(nivel_final, data["Ecuacion_Volumen"], porcentaje=True)
+    st.subheader("📊 Resultados de Preparación")
+    st.dataframe(resultado, use_container_width=True)
 
-    # Concentración en fracción
-    concentracion = data["Concentracion_Porcentual"] / 100
+    st.subheader("📄 Texto Técnico para Comunicación")
+    fecha_actual = datetime.today().strftime("%Y-%m-%d")
+    texto = f"""
+1. Premisas para la preparación:
 
-    # Volumen soluto y solvente en litros
-    volumen_soluto = volumen_total * concentracion
-    volumen_solvente = volumen_total - volumen_soluto
+a. Densidad del solvente utilizada: {densidad_solvente:.1f} kg/m³ (Data JLBT {fecha_actual}).
+b. Nivel del recipiente {datos['Tanque_preparacion']} a considerar: {nivel_inicial:.1f} %.
+c. Aforar hasta {nivel_final:.1f} % para máxima eficiencia sin superar la alarma de alta ({float(datos['Alarma_Alta'])*100:.2f}%).
 
-    # Masas en kg
-    masa_soluto = volumen_soluto * data["Densidad_Soluto"]
-    masa_solvente = volumen_solvente * densidad_solvente_actual
+d. Producto químico: {datos['Nombre_comercial']} - {datos['Tipo_Producto']}
+e. Presentación: {datos['Presentacion']}, Proveedor: {datos['Proveedor']}, Código: {datos['Codigo']}
 
-    st.subheader("Resultados de Preparación")
-    resultados = pd.DataFrame({
-        "Componente": ["Soluto", "Solvente", "Total"],
-        "Volumen (L)": [round(volumen_soluto, 2), round(volumen_solvente, 2), round(volumen_total, 2)],
-        "Masa (kg)": [round(masa_soluto, 2), round(masa_solvente, 2), round(masa_soluto + masa_solvente, 2)]
-    })
-    st.dataframe(resultados, use_container_width=True)
+2. Preparación de la Solución:
+
+{resultado.to_string(index=False)}
+    """
+    st.code(texto)
 
 if __name__ == "__main__":
     main()
