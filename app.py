@@ -1,81 +1,100 @@
 import pandas as pd
+import numpy as np
 import streamlit as st
 from datetime import datetime
 
+# Función para cargar datos del Excel
 @st.cache_data
 def cargar_datos():
     return pd.read_excel("plantilla_recetas_productos.xlsx")
 
-def evaluar_volumen(nivel, ecuacion, porcentaje=True):
-    x = nivel / 100 if porcentaje else nivel
-    return eval(ecuacion)
+# Función para evaluar la ecuación
+def evaluar_volumen(x, ecuacion):
+    try:
+        return eval(ecuacion.replace("x", str(x / 100)))
+    except Exception as e:
+        st.error(f"Error en la fórmula: {e}")
+        return np.nan
 
-def main():
-    st.set_page_config(page_title="Preparación de Soluciones Químicas", page_icon=":blue_book:", layout="centered")
-    st.title("📘 Preparación de Soluciones Químicas")
+# Cargar datos
+data = cargar_datos()
 
-    df = cargar_datos()
+# Título principal
+st.title("📘 Preparación de Soluciones Químicas")
 
-    unidades = df["Unidad"].unique()
-    unidad_seleccionada = st.selectbox("Selecciona la unidad:", unidades)
+# Selección de unidad
+unidad_seleccionada = st.selectbox("Selecciona la unidad:", sorted(data["Unidad"].dropna().unique()))
+productos_disponibles = data[data["Unidad"] == unidad_seleccionada]["Nombre_comercial"].dropna().unique()
+producto_seleccionado = st.selectbox("Selecciona el producto químico:", sorted(productos_disponibles))
 
-    productos_disponibles = df[df["Unidad"] == unidad_seleccionada]["Nombre_comercial"]
-    producto_seleccionado = st.selectbox("Selecciona el producto químico:", productos_disponibles)
+# Filtrar datos del producto
+datos_producto = data[(data["Unidad"] == unidad_seleccionada) & (data["Nombre_comercial"] == producto_seleccionado)].iloc[0]
 
-    data = df[(df["Unidad"] == unidad_seleccionada) & (df["Nombre_comercial"] == producto_seleccionado)].iloc[0]
+# Entrada de parámetros
+st.subheader("Parámetros de Preparación")
+densidad_solvente = st.number_input("Ingrese la densidad actual del solvente (kg/m³):", value=float(datos_producto["Densidad_Solvente_Referencia"]), step=0.01)
+nivel_inicial = st.number_input("Nivel inicial (%):", min_value=0.0, max_value=100.0, value=15.0, step=0.1)
+nivel_final = st.number_input("Nivel final (%):", min_value=0.0, max_value=100.0, value=88.0, step=0.1)
 
-    st.subheader("Parámetros de Preparación")
-    densidad_solvente = st.number_input("Ingrese la densidad actual del solvente (kg/m³):", value=729.8)
-    nivel_inicial = st.number_input("Nivel inicial (%):", value=15.0)
-    nivel_final = st.number_input("Nivel final (%):", value=88.0)
+# Evaluación del volumen a preparar
+volumen_total = evaluar_volumen(nivel_final, datos_producto["Ecuacion_Volumen"]) - evaluar_volumen(nivel_inicial, datos_producto["Ecuacion_Volumen"])
+volumen_total = round(volumen_total, 2)
 
-    volumen_total = evaluar_volumen(nivel_final, data["Ecuacion_Litros"], porcentaje=data["Tipo_Ecuacion"] == "porcentaje") - \
-                    evaluar_volumen(nivel_inicial, data["Ecuacion_Litros"], porcentaje=data["Tipo_Ecuacion"] == "porcentaje")
+# Cálculo de volúmenes y masas
+porc_soluto = datos_producto["Concentracion_Porcentual"] / 100
+volumen_soluto = round(porc_soluto * volumen_total, 2)
+volumen_solvente = round(volumen_total - volumen_soluto, 2)
 
-    volumen_soluto = volumen_total * data["Concentracion_%"] / 100
-    volumen_solvente = volumen_total - volumen_soluto
+masa_soluto = round(volumen_soluto * datos_producto["Densidad_Soluto"], 2)
+masa_solvente = round(volumen_solvente * densidad_solvente, 2)
+masa_total = round(masa_soluto + masa_solvente, 2)
 
-    masa_soluto = volumen_soluto * data["Densidad_soluto"]
-    masa_solvente = volumen_solvente * densidad_solvente
-    masa_total = masa_soluto + masa_solvente
+# Mostrar tabla de resultados
+st.subheader("Resultados de Preparación")
+df_resultados = pd.DataFrame({
+    "Componente": ["Soluto", "Solvente", "Total"],
+    "Volumen (L)": [volumen_soluto, volumen_solvente, volumen_total],
+    "Masa (kg)": [masa_soluto, masa_solvente, masa_total]
+})
+st.dataframe(df_resultados, use_container_width=True)
 
-    st.subheader("Resultados de Preparación")
-    resultados = pd.DataFrame({
-        "Componente": ["Soluto", "Solvente", "Total"],
-        "Volumen (L)": [round(volumen_soluto, 2), round(volumen_solvente, 2), round(volumen_total, 2)],
-        "Masa (kg)": [round(masa_soluto, 2), round(masa_solvente, 2), round(masa_total, 2)]
-    })
-    st.dataframe(resultados, hide_index=True)
+# Generar texto tipo correo
+st.subheader("Texto para Comunicación Técnica")
 
-    # Texto de correo
-    st.markdown("---")
-    st.subheader("📧 Texto del correo sugerido")
-    texto_correo = f"""
-1. Premisas para la preparación:
+fecha_actual = datetime.today().strftime("%Y-%m-%d")
+texto_correo = f"""
+1.         Premisas para la preparación:
 
-a. Densidad del solvente: {densidad_solvente:.1f} kg/m³ (Data JLBT {datetime.today().strftime('%Y-%m-%d')})  
-b. Nivel del tanque considerado: {nivel_inicial:.1f} %  
-c. Nivel objetivo de aforo: {nivel_final:.1f} %  
+a. Densidad de la nafta pesada hidrotratada: {densidad_solvente} kg/m³ (Data JLBT {fecha_actual}).
+b. Nivel del drum {datos_producto['Tanque_preparacion']} a considerar: {nivel_inicial} %.
+c. Objetivo para aforar es hasta el {nivel_final}%, para utilizar la máxima cantidad del PQ una vez abierto el cilindro, 
+   que sea fácil de contabilizar en campo y estar por debajo de la alarma de alta ({datos_producto['Alarma_Alta']}%).
 
-2. Preparación de la Solución:
+2.         Preparación de la Solución:
 
-| Componente | Volumen (L) | Masa (kg) |
-|------------|-------------|-----------|
-| {producto_seleccionado} (soluto) | {volumen_soluto:.2f} | {masa_soluto:.2f} |
-| {data["Nombre_solvente"]} | {volumen_solvente:.2f} | {masa_solvente:.2f} |
-| Total | {volumen_total:.2f} | {masa_total:.2f} |
+| Componente              | Volumen     | Masa     |
+|-------------------------|-------------|----------|
+| {producto_seleccionado} (soluto)     | {volumen_soluto} L     | {masa_soluto} kg |
+| Nafta pesada hidrotratada          | {volumen_solvente} L     | {masa_solvente} kg |
+| Total solución preparada           | {volumen_total} L     | {masa_total} kg |
+
+3.         Información para retirar producto de almacén (JIYA):
+
+a. Código Material: {datos_producto['Codigo']}.
+b. Proveedor: {datos_producto['Proveedor']}.
+c. Nombre comercial: {producto_seleccionado}.
+d. Presentación: {datos_producto['Presentacion']}.
 """
-    st.code(texto_correo, language="markdown")
 
-    st.markdown("---")
-    st.markdown(
-        """
-        <div style='text-align: center; color: gray; font-size: 14px;'>
+st.code(texto_correo, language="markdown")
+
+# Footer
+st.markdown("---")
+st.markdown(
+    """
+    <div style='text-align: center; color: gray; font-size: 14px;'>
         📌 Creado por <strong>Denis Sánchez</strong> – Refinería Talara, 2025
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
-
-if __name__ == "__main__":
-    main()
+    </div>
+    """,
+    unsafe_allow_html=True
+)
