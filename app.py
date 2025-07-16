@@ -121,16 +121,14 @@ c. Nivel final: {nivel_final:.1f} %
         )
 
     with col2:
-        st.markdown(
-            f"""
-            <button onclick="navigator.clipboard.writeText(`{texto.strip()}`)"
-                    style="background-color: #2563eb; color: white; padding: 8px 16px;
-                           border: none; border-radius: 5px; cursor: pointer; font-size: 14px;">
-                📋 Copiar
-            </button>
-            """,
-            unsafe_allow_html=True
-        )
+    st.markdown('''
+        <button onclick="navigator.clipboard.writeText(document.getElementById('texto_copiar').innerText)"
+                style="background-color: #2563eb; color: white; padding: 8px 16px;
+                       border: none; border-radius: 5px; cursor: pointer; font-size: 14px;">
+            📋 Copiar
+        </button>
+    ''', unsafe_allow_html=True)
+
 
 # Pie de página personalizado
 st.markdown("---")
