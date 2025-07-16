@@ -112,12 +112,9 @@ c. Nivel final: {nivel_final:.1f} %
     st.text_area("Texto generado:", value=texto.strip(), height=300)
 
     # --- Opción de descarga ---
-    buffer = StringIO()
-    buffer.write(texto)
-    buffer.seek(0)
     st.download_button(
-        label="📥 Descargar texto como .txt",
-        data=buffer,
-        file_name=f"reporte_preparacion_{unidad_seleccionada}_{nombre_comercial}.txt",
-        mime="text/plain"
-    )
+    label="📥 Descargar texto como .txt",
+    data=texto,
+    file_name=f"reporte_preparacion_{unidad_seleccionada}_{nombre_comercial}.txt",
+    mime="text/plain"
+)
