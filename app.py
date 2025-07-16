@@ -1,4 +1,5 @@
 import streamlit as st
+import streamlit.components.v1 as components
 import pandas as pd
 import numpy as np
 from datetime import datetime
@@ -110,27 +111,33 @@ c. Nivel final: {nivel_final:.1f} %
     st.subheader("✉️ Texto técnico para reporte o correo")
     st.caption("Puedes copiar o descargar el texto generado.")
 
-    # Contenedor oculto para copiar texto
-    st.markdown(f"<div id='texto_copiar' style='display:none;'>{texto.strip()}</div>", unsafe_allow_html=True)
+    # Área de texto editable (opcional)
+    st.text_area("Texto generado (puedes copiar manualmente):", value=texto.strip(), height=300)
 
-    col1, col2 = st.columns([1, 1])
+    # Botón copiar con JavaScript funcional
+    components.html(f"""
+        <script>
+            function copiarTexto() {{
+                var texto = `{texto.strip().replace("`", "\\`")}`;
+                navigator.clipboard.writeText(texto).then(function() {{
+                    alert('Texto copiado al portapapeles');
+                }});
+            }}
+        </script>
+        <button onclick="copiarTexto()"
+                style="background-color: #2563eb; color: white; padding: 8px 16px;
+                       border: none; border-radius: 5px; cursor: pointer; font-size: 14px;">
+            📋 Copiar
+        </button>
+    """, height=50)
 
-    with col1:
-        st.download_button(
-            label="📄 Descargar texto como .txt",
-            data=texto,
-            file_name=f"reporte_preparacion_{unidad_seleccionada}_{nombre_comercial}.txt",
-            mime="text/plain"
-        )
-
-    with col2:
-        st.markdown('''
-            <button onclick="navigator.clipboard.writeText(document.getElementById('texto_copiar').innerText)"
-                    style="background-color: #2563eb; color: white; padding: 8px 16px;
-                           border: none; border-radius: 5px; cursor: pointer; font-size: 14px;">
-                📋 Copiar
-            </button>
-        ''', unsafe_allow_html=True)
+    # Botón para descarga
+    st.download_button(
+        label="📄 Descargar texto como .txt",
+        data=texto,
+        file_name=f"reporte_preparacion_{unidad_seleccionada}_{nombre_comercial}.txt",
+        mime="text/plain"
+    )
 
 # Pie de página personalizado
 st.markdown("---")
