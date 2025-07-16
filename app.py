@@ -20,8 +20,8 @@ st.title("🧪 Preparación de Productos Químicos por Unidad")
 # Cargar datos desde el archivo Excel
 @st.cache_data
 def cargar_datos():
-    df.columns = df.columns.str.strip()
     df = pd.read_excel("plantilla_recetas_productos.xlsx", sheet_name="Sheet1")
+    df.columns = df.columns.str.strip()  # Limpieza de nombres de columnas
     return df
 
 df = cargar_datos()
