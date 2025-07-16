@@ -110,6 +110,9 @@ c. Nivel final: {nivel_final:.1f} %
     st.subheader("✉️ Texto técnico para reporte o correo")
     st.caption("Puedes copiar o descargar el texto generado.")
 
+    # Contenedor oculto para copiar texto
+    st.markdown(f"<div id='texto_copiar' style='display:none;'>{texto.strip()}</div>", unsafe_allow_html=True)
+
     col1, col2 = st.columns([1, 1])
 
     with col1:
@@ -120,17 +123,14 @@ c. Nivel final: {nivel_final:.1f} %
             mime="text/plain"
         )
 
-    st.markdown(f"<div id='texto_copiar' style='display:none;'>{texto.strip()}</div>", unsafe_allow_html=True)
-
     with col2:
-    st.markdown('''
-        <button onclick="navigator.clipboard.writeText(document.getElementById('texto_copiar').innerText)"
-                style="background-color: #2563eb; color: white; padding: 8px 16px;
-                       border: none; border-radius: 5px; cursor: pointer; font-size: 14px;">
-            📋 Copiar
-        </button>
-    ''', unsafe_allow_html=True)
-
+        st.markdown('''
+            <button onclick="navigator.clipboard.writeText(document.getElementById('texto_copiar').innerText)"
+                    style="background-color: #2563eb; color: white; padding: 8px 16px;
+                           border: none; border-radius: 5px; cursor: pointer; font-size: 14px;">
+                📋 Copiar
+            </button>
+        ''', unsafe_allow_html=True)
 
 # Pie de página personalizado
 st.markdown("---")
