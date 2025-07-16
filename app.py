@@ -121,3 +121,12 @@ c. Nivel final: {nivel_final:.1f} %
     file_name=f"reporte_preparacion_{unidad_seleccionada}_{nombre_comercial}.txt",
     mime="text/plain"
 )
+st.markdown("---")
+st.markdown(
+    """
+    <div style='text-align: center; color: gray; font-size: 14px;'>
+        ✳ Creado por <strong>Denis Sánchez</strong> – Refinería Talara, 2025
+    </div>
+    """,
+    unsafe_allow_html=True
+)
