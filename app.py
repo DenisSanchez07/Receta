@@ -16,7 +16,12 @@ from io import StringIO
 from math import *
 
 st.set_page_config(page_title="Preparación de Productos Químicos", layout="centered")
-st.title("🧪 Preparación de Productos Químicos por Unidad")
+st.markdown(
+    """
+    <h1 style='text-align: center;'>🧪 Preparación de Productos Químicos por Unidad</h1>
+    """,
+    unsafe_allow_html=True
+)
 
 # Cargar datos desde el archivo Excel
 @st.cache_data
