@@ -119,13 +119,34 @@ c. Nivel final: {nivel_final:.1f} %
     st.subheader("✉️ Texto técnico para reporte o correo")
     st.text_area("Texto generado:", value=texto.strip(), height=300)
 
-    # --- Opción de descarga ---
+    st.caption("Puedes copiar o descargar el texto generado.")
+
+# Diseño en dos columnas: Descargar | Copiar
+col1, col2 = st.columns([1, 1])
+
+# Botón para descargar
+with col1:
     st.download_button(
-    label="📥 Descargar texto como .txt",
-    data=texto,
-    file_name=f"reporte_preparacion_{unidad_seleccionada}_{nombre_comercial}.txt",
-    mime="text/plain"
-)
+        label="📄 Descargar texto como .txt",
+        data=texto,
+        file_name=f"reporte_preparacion_{unidad_seleccionada}_{nombre_comercial}.txt",
+        mime="text/plain"
+    )
+
+# Botón para copiar
+with col2:
+    st.markdown(
+        f"""
+        <button onclick="navigator.clipboard.writeText(`{texto.strip()}`)"
+                style="background-color: #2563eb; color: white; padding: 8px 16px;
+                       border: none; border-radius: 5px; cursor: pointer; font-size: 14px;">
+            📋 Copiar
+        </button>
+        """,
+        unsafe_allow_html=True
+    )
+
+    
 st.markdown("---")
 st.markdown(
     """
