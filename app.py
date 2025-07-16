@@ -10,6 +10,7 @@ Original file is located at
 import streamlit as st
 import pandas as pd
 import numpy as np
+import pytz
 from datetime import date
 from io import StringIO
 from math import *
@@ -88,11 +89,12 @@ if st.button("Calcular preparación"):
     st.json(resultados)
 
     # --- Generar texto para correo ---
-    fecha_hoy = date.today().strftime("%Y-%m-%d")
+    zona_peru = pytz.timezone("America/Lima")
+    fecha_hoy = datetime.now(zona_peru).strftime("%Y-%m-%d")
     texto = f"""
 1.         Premisas para la preparación:
 
-a. Densidad del solvente: {densidad_solvente_input:.1f} kg/m³ (Data JLBT {fecha_hoy}).
+a. Densidad del solvente: {densidad_solvente_input:.1f} kg/m³ (Data JLBT: {fecha_hoy}).
 b. Nivel inicial: {nivel_inicial:.1f} %
 c. Nivel final: {nivel_final:.1f} %
 
