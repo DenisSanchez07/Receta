@@ -10,8 +10,8 @@ Original file is located at
 import streamlit as st
 import pandas as pd
 import numpy as np
+from datetime import datetime
 import pytz
-from datetime import date
 from io import StringIO
 from math import *
 
