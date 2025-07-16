@@ -6,9 +6,9 @@ from datetime import datetime
 # Cargar datos desde Excel (asegúrate de que el archivo se haya subido y esté en el mismo directorio)
 @st.cache_data
 def cargar_datos():
-    return pd.read_excel("plantilla_recetas_productos.xlsx")
-    st.write(df.columns.tolist())
-
+    df = pd.read_excel("plantilla_recetas_productos.xlsx")
+    st.write(df.columns.tolist())  # Esto mostrará las columnas en pantalla
+    return df
 
 def evaluar_volumen(nivel, ecuacion_str, porcentaje=True):
     x = nivel / 100 if porcentaje else nivel
