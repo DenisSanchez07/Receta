@@ -58,7 +58,7 @@ if not data.empty:
 
     masa_soluto = (concentracion / 100) * masa_total
     masa_solvente = masa_total - masa_soluto
-    volumen_soluto = masa_soluto / densidad_soluto
+    volumen_soluto = masa_soluto / (densidad_soluto / 1000)  # Convertimos kg/m³ → kg/L
     volumen_solvente = masa_solvente / densidad_solvente
 
     # --- Resultados ---
