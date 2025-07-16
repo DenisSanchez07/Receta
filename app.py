@@ -92,7 +92,7 @@ if st.button("Calcular preparación"):
     texto = f"""
 1.         Premisas para la preparación:
 
-a. Densidad del solvente: {densidad_solvente_input:.1f} kg/m³ (Data técnica {fecha_hoy}).
+a. Densidad del solvente: {densidad_solvente_input:.1f} kg/m³ (Data JLBT {fecha_hoy}).
 b. Nivel inicial: {nivel_inicial:.1f} %
 c. Nivel final: {nivel_final:.1f} %
 
