@@ -120,6 +120,8 @@ c. Nivel final: {nivel_final:.1f} %
             mime="text/plain"
         )
 
+    st.markdown(f"<div id='texto_copiar' style='display:none;'>{texto.strip()}</div>", unsafe_allow_html=True)
+
     with col2:
     st.markdown('''
         <button onclick="navigator.clipboard.writeText(document.getElementById('texto_copiar').innerText)"
