@@ -10,7 +10,7 @@ st.set_page_config(page_title="Preparación de Productos Químicos", layout="cen
 
 st.markdown(
     """
-    <h1 style='text-align: justify;'>🧪 Preparación de Productos Químicos por Unidad</h1>
+    <h1 style='text-align: center;'>Preparación de Productos Químicos Complejo Hidrotratamiento</h1>
     """,
     unsafe_allow_html=True
 )
