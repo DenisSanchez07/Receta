@@ -32,7 +32,7 @@ def main():
     unidades = df["Unidad"].dropna().unique()
     unidad_seleccionada = st.selectbox("Selecciona la unidad:", unidades)
 
-    productos = df[df["Unidad"] == unidad_seleccionada]["Codigo"].unique()
+    productos = df[df["Unidad"] == unidad_seleccionada]["Tipo_Producto"].unique()
     producto_seleccionado = st.selectbox("Selecciona el producto químico:", productos)
 
     data = df[(df["Unidad"] == unidad_seleccionada) & (df["Producto químico"] == producto_seleccionado)].iloc[0]
