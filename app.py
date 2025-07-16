@@ -98,7 +98,7 @@ c. Nivel final: {nivel_final:.1f} %
 2.         Preparación de la solución:
 
 - {nombre_comercial} (soluto): {int(round(volumen_soluto*1000))} L – {int(round(masa_soluto))} kg
-- Nafta pesada (solvente): {int(round(volumen_solvente*1000))} L – {int(round(masa_solvente))} kg
+- {datos['Solvente']} (solvente): {int(round(volumen_solvente*1000))} L – {int(round(masa_solvente))} kg
 - Total solución preparada: {int(round(volumen_objetivo*1000))} L – {int(round(masa_total))} kg
 
 3.         Información logística:
